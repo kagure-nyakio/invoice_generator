@@ -17,7 +17,7 @@ defmodule InvoiceGeneratorWeb.Router do
   scope "/", InvoiceGeneratorWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live "/", HomeLive
   end
 
   # Other scopes may use custom stacks.

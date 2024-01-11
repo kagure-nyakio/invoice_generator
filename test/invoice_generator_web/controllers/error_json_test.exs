@@ -2,7 +2,9 @@ defmodule InvoiceGeneratorWeb.ErrorJSONTest do
   use InvoiceGeneratorWeb.ConnCase, async: true
 
   test "renders 404" do
-    assert InvoiceGeneratorWeb.ErrorJSON.render("404.json", %{}) == %{errors: %{detail: "Not Found"}}
+    assert InvoiceGeneratorWeb.ErrorJSON.render("404.json", %{}) == %{
+             errors: %{detail: "Not Found"}
+           }
   end
 
   test "renders 500" do

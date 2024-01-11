@@ -38,4 +38,4 @@ npm-debug.log
 .elixir_ls
 .env
 .vscode
-
+/scripts/
