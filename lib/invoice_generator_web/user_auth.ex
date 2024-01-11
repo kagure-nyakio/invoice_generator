@@ -1,4 +1,6 @@
 defmodule InvoiceGeneratorWeb.UserAuth do
+  @moduledoc false
+
   use InvoiceGeneratorWeb, :verified_routes
 
   import Plug.Conn

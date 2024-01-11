@@ -1,10 +1,11 @@
 defmodule InvoiceGeneratorWeb.UserAuthTest do
   use InvoiceGeneratorWeb.ConnCase, async: true
 
-  alias Phoenix.LiveView
+  import InvoiceGenerator.AccountsFixtures
+
   alias InvoiceGenerator.Accounts
   alias InvoiceGeneratorWeb.UserAuth
-  import InvoiceGenerator.AccountsFixtures
+  alias Phoenix.LiveView
 
   @remember_me_cookie "_invoice_generator_web_user_remember_me"
 
