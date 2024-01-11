@@ -1,0 +1,12 @@
+{
+  "coverage_options": {
+    "minimum_coverage": 95
+  },
+  "skip_files": [
+    " lib/invoice_generator.ex",
+    "lib/invoice_generator_web/components/core_components",
+    "lib/invoice_generator_web/gettext.ex",
+    "lib/invoice_generator_web/telemetry.ex",
+    "test/support/data_case.ex"
+  ]
+}
