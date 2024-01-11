@@ -19,4 +19,4 @@
 /../.gitignore
 /../.iex.exs
 /../.erl_crash.dump
-vendor/topbar.js
+/vendor/topbar.js
