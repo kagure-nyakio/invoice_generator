@@ -27,6 +27,7 @@ defmodule GitHubWorkflows do
           dialyzer: dialyzer_job(),
           format: format_job(),
           hex_audit: hex_audit_job(),
+          migrations: migrations_job(),
           prettier: prettier_job(),
           sobelow: sobelow_job(),
           test: test_job(),
@@ -53,6 +54,7 @@ defmodule GitHubWorkflows do
           dialyzer: dialyzer_job(),
           format: format_job(),
           hex_audit: hex_audit_job(),
+          migrations: migrations_job(),
           prettier: prettier_job(),
           sobelow: sobelow_job(),
           test: test_job(),
@@ -148,6 +150,7 @@ defmodule GitHubWorkflows do
   defp elixir_job(name, opts) do
     needs = Keyword.get(opts, :needs)
     steps = Keyword.get(opts, :steps, [])
+    services = Keyword.get(opts, :services)
 
     job = [
       name: name,
@@ -178,11 +181,21 @@ defmodule GitHubWorkflows do
         ] ++ steps
     ]
 
-    if needs do
-      Keyword.put(job, :needs, needs)
-    else
-      job
-    end
+    job
+    |> then(fn job ->
+      if needs do
+        Keyword.put(job, :needs, needs)
+      else
+        job
+      end
+    end)
+    |> then(fn job ->
+      if services do
+        Keyword.put(job, :services, services)
+      else
+        job
+      end
+    end)
   end
 
   defp format_job do
@@ -206,6 +219,22 @@ defmodule GitHubWorkflows do
           name: "Check for retired Hex packages",
           env: [MIX_ENV: "test"],
           run: "mix hex.audit"
+        ]
+      ]
+    )
+  end
+
+  defp migrations_job do
+    elixir_job("Migrations",
+      needs: :compile,
+      services: [
+        db: db_service()
+      ],
+      steps: [
+        [
+          name: "Check if migrations are reversible",
+          env: [MIX_ENV: "test"],
+          run: "mix ci.migrations"
         ]
       ]
     )
@@ -277,5 +306,15 @@ defmodule GitHubWorkflows do
         ]
       ]
     )
+  end
+
+  defp db_service do
+    [
+      image: "postgres:13",
+      ports: ["5432:5432"],
+      env: [POSTGRES_PASSWORD: "postgres"],
+      options:
+        "--health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5"
+    ]
   end
 end

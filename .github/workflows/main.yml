@@ -163,6 +163,38 @@ jobs:
         env:
           MIX_ENV: test
         run: mix hex.audit
+  migrations:
+    services:
+      db:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    needs: compile
+    name: Migrations
+    runs-on: ubuntu-latest
+    env:
+      elixir-version: 1.14.2
+      otp-version: 25.2.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Set up Elixir
+        uses: erlef/setup-beam@v1
+        with:
+          elixir-version: ${{ env.elixir-version }}
+          otp-version: ${{ env.otp-version }}
+      - uses: actions/cache@v3
+        with:
+          path: "_build\ndeps"
+          key: ${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}
+          restore-keys: ${{ runner.os }}-mix
+      - name: Check if migrations are reversible
+        env:
+          MIX_ENV: test
+        run: mix ci.migrations
   prettier:
     name: Check formatting using Prettier
     runs-on: ubuntu-latest

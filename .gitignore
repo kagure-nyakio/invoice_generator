@@ -34,6 +34,7 @@ invoice_generator-*.tar
 # Dialyzer files
 /priv/dialyzer.plt
 /priv/dialyzer.hash
+/priv/plts/
 
 # In case you use Node.js/npm, you want to ignore these.
 npm-debug.log
