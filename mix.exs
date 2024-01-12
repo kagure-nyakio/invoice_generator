@@ -125,7 +125,11 @@ defmodule InvoiceGenerator.MixProject do
         "sobelow --config .sobelow-conf"
       ],
       "ci.formatting": ["format --check-formatted", "cmd --cd assets npx prettier -c .."],
-      "ci.migrations": ["ecto.migrate --quiet", "ecto.rollback --all --quiet"],
+      "ci.migrations": [
+        "ecto.create --quiet",
+        "ecto.migrate --quiet",
+        "ecto.rollback --all --quiet"
+      ],
       "ci.test": [
         "ecto.create --quiet",
         "ecto.migrate --quiet",
