@@ -5,7 +5,7 @@ defmodule InvoiceGenerator.MixProject do
     [
       app: :invoice_generator,
       version: "0.1.0",
-      elixir: "~> 1.14",
+      elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
@@ -25,11 +25,22 @@ defmodule InvoiceGenerator.MixProject do
         dialyzer: :test,
         sobelow: :test
       ],
+      compilers: [:yecc] ++ Mix.compilers(),
+      compilers: [:leex] ++ Mix.compilers(),
       test_coverage: [tool: ExCoveralls],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
         plt_add_apps: [:ex_unit, :mix],
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
+      ],
+
+      # Docs
+      name: "InvoiceGenerator",
+      source_url: "https://github.com/kagure-nyakio/invoice_generator",
+      docs: [
+        extras: ["README.md"],
+        main: "readme",
+        source_ref: "main"
       ]
     ]
   end
@@ -53,6 +64,7 @@ defmodule InvoiceGenerator.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:bcrypt_elixir, "~> 3.0"},
       {:phoenix, "~> 1.7.10"},
       {:phoenix_ecto, "~> 4.4"},
       {:ecto_sql, "~> 3.10"},
@@ -110,11 +122,14 @@ defmodule InvoiceGenerator.MixProject do
       "ci.deps_and_security": [
         "deps.unlock --check-unused",
         "deps.audit",
-        "hex.audit",
         "sobelow --config .sobelow-conf"
       ],
       "ci.formatting": ["format --check-formatted", "cmd --cd assets npx prettier -c .."],
-      "ci.migrations": ["ecto.migrate --quiet", "ecto.rollback --all --quiet"],
+      "ci.migrations": [
+        "ecto.create --quiet",
+        "ecto.migrate --quiet",
+        "ecto.rollback --all --quiet"
+      ],
       "ci.test": [
         "ecto.create --quiet",
         "ecto.migrate --quiet",

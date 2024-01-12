@@ -7,8 +7,7 @@ defmodule GitHubWorkflows do
   def get do
     %{
       "main.yml" => main_workflow(),
-      "pr_opening.yml" => pr_opening_workflow(),
-      "pr_sync.yml" => pr_sync_workflow()
+      "pr.yml" => pr_workflow()
     }
   end
 
@@ -22,59 +21,53 @@ defmodule GitHubWorkflows do
           ]
         ],
         jobs: [
-          jobs()
+          compile: compile_job(),
+          credo: credo_job(),
+          deps_audit: deps_audit_job(),
+          dialyzer: dialyzer_job(),
+          format: format_job(),
+          hex_audit: hex_audit_job(),
+          migrations: migrations_job(),
+          prettier: prettier_job(),
+          sobelow: sobelow_job(),
+          test: test_job(),
+          unused_deps: unused_deps_job()
         ]
       ]
     ]
   end
 
-  defp pr_opening_workflow() do
+  defp pr_workflow() do
     [
       [
-        name: "PR opening",
+        name: "PR",
         on: [
           pull_request: [
             branches: ["main"],
-            types: ["opened"]
+            types: ["opened", "reopened", "synchronize"]
           ]
         ],
         jobs: [
-          jobs()
+          compile: compile_job(),
+          credo: credo_job(),
+          deps_audit: deps_audit_job(),
+          dialyzer: dialyzer_job(),
+          format: format_job(),
+          hex_audit: hex_audit_job(),
+          migrations: migrations_job(),
+          prettier: prettier_job(),
+          sobelow: sobelow_job(),
+          test: test_job(),
+          unused_deps: unused_deps_job()
         ]
       ]
     ]
   end
 
-  defp pr_sync_workflow() do
+  defp checkout_step do
     [
-      [
-        name: "PR sync",
-        on: [
-          pull_request: [
-            branches: ["main"],
-            types: ["synchronize"]
-          ]
-        ],
-        jobs: [
-          jobs()
-        ]
-      ]
-    ]
-  end
-
-  defp jobs do
-    [
-      compile: compile_job(),
-      credo: credo_job(),
-      deps_audit: deps_audit_job(),
-      dialyzer: dialyzer_job(),
-      format: format_job(),
-      hex_audit: hex_audit_job(),
-      migrations: migrations_job(),
-      prettier: prettier_job(),
-      sobelow: sobelow_job(),
-      test: test_job(),
-      unused_deps: unused_deps_job()
+      name: "Checkout",
+      uses: "actions/checkout@v2"
     ]
   end
 
@@ -122,21 +115,26 @@ defmodule GitHubWorkflows do
   end
 
   defp dialyzer_job do
-    cache_key_prefix = "${{ runner.os }}-${{ env.elixir-version }}-${{ env.otp-version }}-plt"
-
     elixir_job("Dialyzer",
       needs: :compile,
       steps: [
         [
+          # Don't cache PLTs based on mix.lock hash, as Dialyzer can incrementally update even old ones
+          # Cache key based on Elixir & Erlang version (also useful when running in matrix)
           name: "Restore PLT cache",
           uses: "actions/cache@v3",
-          with:
-            [
-              path: "priv/plts"
-            ] ++ cache_opts(cache_key_prefix)
+          id: "plt_cache",
+          with: [
+            key: "${{ runner.os }}-${{ env.elixir-version }}-${{ env.otp-version }}-plt",
+            "restore-keys":
+              "${{ runner.os }}-${{ env.elixir-version }}-${{ env.otp-version }}-plt",
+            path: "priv/plts"
+          ]
         ],
         [
+          # Create PLTs if no cache was found
           name: "Create PLTs",
+          if: "steps.plt_cache.outputs.cache-hit != 'true'",
           env: [MIX_ENV: "test"],
           run: "mix dialyzer --plt"
         ],
@@ -151,20 +149,19 @@ defmodule GitHubWorkflows do
 
   defp elixir_job(name, opts) do
     needs = Keyword.get(opts, :needs)
-    services = Keyword.get(opts, :services)
     steps = Keyword.get(opts, :steps, [])
-
-    cache_key_prefix = "${{ runner.os }}-${{ env.elixir-version }}-${{ env.otp-version }}-mix"
+    services = Keyword.get(opts, :services)
 
     job = [
       name: name,
       "runs-on": "ubuntu-latest",
       env: [
-        "elixir-version": "1.14.5",
-        "otp-version": "25.0.3"
+        "elixir-version": "1.16.0",
+        "otp-version": "25.2.1"
       ],
       steps:
         [
+          checkout_step(),
           [
             name: "Set up Elixir",
             uses: "erlef/setup-beam@v1",
@@ -172,21 +169,16 @@ defmodule GitHubWorkflows do
               "elixir-version": "${{ env.elixir-version }}",
               "otp-version": "${{ env.otp-version }}"
             ]
-          ]
-        ] ++
-          cache_metadata_steps() ++
+          ],
           [
-            [
-              uses: "actions/cache@v3",
-              with:
-                [
-                  path: ~S"""
-                  _build
-                  deps
-                  """
-                ] ++ cache_opts(cache_key_prefix)
+            uses: "actions/cache@v3",
+            with: [
+              path: "_build\ndeps",
+              key: "${{ runner.os }}-mix-${{ hashFiles('**/mix.lock') }}",
+              "restore-keys": "${{ runner.os }}-mix"
             ]
-          ] ++ steps
+          ]
+        ] ++ steps
     ]
 
     job
@@ -253,19 +245,21 @@ defmodule GitHubWorkflows do
       name: "Check formatting using Prettier",
       "runs-on": "ubuntu-latest",
       steps: [
+        checkout_step(),
         [
           name: "Restore npm cache",
           uses: "actions/cache@v3",
           id: "npm-cache",
           with: [
             path: "~/.npm",
-            key: "${{ runner.os }}-prettier"
+            key: "${{ runner.os }}-node",
+            "restore-keys": "${{ runner.os }}-node"
           ]
         ],
         [
           name: "Install Prettier",
           if: "steps.npm-cache.outputs.cache-hit != 'true'",
-          run: "npm i -g prettier prettier-plugin-tailwindcss"
+          run: "npm i -g prettier"
         ],
         [
           name: "Run Prettier",
@@ -297,10 +291,8 @@ defmodule GitHubWorkflows do
       steps: [
         [
           name: "Run tests",
-          env: [
-            MIX_ENV: "test"
-          ],
-          run: "mix ci.test"
+          env: [MIX_ENV: "test"],
+          run: "mix test --cover --warnings-as-errors"
         ]
       ]
     )
@@ -326,38 +318,6 @@ defmodule GitHubWorkflows do
       env: [POSTGRES_PASSWORD: "postgres"],
       options:
         "--health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5"
-    ]
-  end
-
-  defp cache_opts(prefix) do
-    [
-      key: "#{prefix}-${{ env.year }}-${{ env.month }}-${{ env.day }}-${{ github.sha }}",
-      "restore-keys": ~s"""
-      #{prefix}-${{ env.year }}-${{ env.month }}-${{ env.day }}-
-      #{prefix}-${{ env.year }}-${{ env.month }}-
-      #{prefix}-${{ env.year }}-
-      #{prefix}-
-      """
-    ]
-  end
-
-  defp cache_metadata_steps do
-    [
-      [
-        name: "Set year",
-        id: :year,
-        run: "echo \"year=$(date +%Y)\" >> $GITHUB_ENV\"\""
-      ],
-      [
-        name: "Set month",
-        id: :month,
-        run: "echo \"month=$(date +%m)\" >> $GITHUB_ENV\"\""
-      ],
-      [
-        name: "Set day",
-        id: :day,
-        run: "echo \"day=$(date +%d)\" >> $GITHUB_ENV\"\""
-      ]
     ]
   end
 end
