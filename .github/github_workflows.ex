@@ -156,7 +156,7 @@ defmodule GitHubWorkflows do
       name: name,
       "runs-on": "ubuntu-latest",
       env: [
-        "elixir-version": "1.14.2",
+        "elixir-version": "1.16.0",
         "otp-version": "25.2.1"
       ],
       steps:
@@ -285,6 +285,9 @@ defmodule GitHubWorkflows do
   defp test_job do
     elixir_job("Test",
       needs: :compile,
+      services: [
+        db: db_service()
+      ],
       steps: [
         [
           name: "Run tests",

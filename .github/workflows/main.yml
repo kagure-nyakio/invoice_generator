@@ -8,7 +8,7 @@ jobs:
     name: Install deps and compile
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
@@ -36,7 +36,7 @@ jobs:
     name: Credo
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
@@ -60,7 +60,7 @@ jobs:
     name: Deps audit
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
@@ -84,7 +84,7 @@ jobs:
     name: Dialyzer
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
@@ -120,7 +120,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
@@ -144,7 +144,7 @@ jobs:
     name: Hex audit
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
@@ -176,7 +176,7 @@ jobs:
     name: Migrations
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
@@ -218,7 +218,7 @@ jobs:
     name: Security check
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
@@ -238,11 +238,19 @@ jobs:
           MIX_ENV: test
         run: mix sobelow --config .sobelow-conf
   test:
+    services:
+      db:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     needs: compile
     name: Test
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
@@ -266,7 +274,7 @@ jobs:
     name: Check unused deps
     runs-on: ubuntu-latest
     env:
-      elixir-version: 1.14.2
+      elixir-version: 1.16.0
       otp-version: 25.2.1
     steps:
       - name: Checkout
