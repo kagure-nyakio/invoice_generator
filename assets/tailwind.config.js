@@ -16,6 +16,9 @@ module.exports = {
       colors: {
         brand: '#FD4F00',
       },
+      fontFamily: {
+        spartan: ['League Spartan', 'sans-serif'],
+      },
     },
   },
   plugins: [
